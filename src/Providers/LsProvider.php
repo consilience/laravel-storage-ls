@@ -11,7 +11,8 @@ use Illuminate\Support\ServiceProvider;
 
 class LsProvider extends ServiceProvider
 {
-    public function register(){
+    public function register()
+    {
         $this->commands(ListStorage::class);
     }
 }

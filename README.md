@@ -6,7 +6,7 @@ This is handy to view remote files and diagnose disk connection problems.
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 [![Total Downloads](https://poser.pugx.org/consilience/laravel-storage-ls/downloads?format=flat)](https://packagist.org/packages/consilience/laravel-storage-ls)
-[![Latest Stable Version](https://poser.pugx.org/consilience/laravel-storage-ls/v/stable?format=flat)](https://packagist.org/packages/consilience/laravel-storage-ls)
+[![Latest Stable Version](https://poser.pugx.org/consilience/laravel-storage-ls/v/stable)](https://packagist.org/packages/consilience/laravel-storage-ls)
 [![Latest Unstable Version](https://poser.pugx.org/consilience/laravel-storage-ls/v/unstable?format=flat)](https://packagist.org/packages/consilience/laravel-storage-ls)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/consilience/laravel-storage-ls/badges/quality-score.png?format=flat)](https://scrutinizer-ci.com/g/consilience/laravel-storage-ls)
 
