@@ -10,7 +10,7 @@ List the contents of Laravel file systems.
 $ php artisan storage:ls
 ```
 
-This will return a list of the available disks
+This will return a list of the available disks with the default flagged [\*]:
 
 ```text
 Available disks:
