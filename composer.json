@@ -19,7 +19,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Consilience\\Laravel\\Ls\\Providers\\LsServiceProvider"
+                "Consilience\\Laravel\\Ls\\Providers\\LsProvider"
             ]
         }
     }
