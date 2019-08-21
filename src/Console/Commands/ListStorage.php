@@ -27,9 +27,10 @@ class ListStorage extends Command
             return 1;
         }
 
-        $selectedDisk = $this->option('disk', '');
+        $selectedDisk = $this->option('disk') ?? '';
+        $defaultDisk = config('filesystems.default');
 
-        if ($selectedDisk != '' && ! array_key_exists($selectedDisk, $disks)) {
+        if ($selectedDisk !== '' && ! array_key_exists($selectedDisk, $disks)) {
             $this->error(sprintf('Selected disk "%s" does not exist', $selectedDisk));
             $selectedDisk = '';
         }
@@ -39,8 +40,11 @@ class ListStorage extends Command
 
             $this->table(
                 ['name', 'driver'],
-                collect($disks)->map(function ($disk, $key) {
-                    return [$key, $disk['driver'] ?? 'unknown'];
+                collect($disks)->map(function ($disk, $name) use ($defaultDisk) {
+                    return [
+                        $name . ($defaultDisk === $name ? ' [*]' : ''),
+                        $disk['driver'] ?? 'unknown',
+                    ];
                 })
             );
             return;
