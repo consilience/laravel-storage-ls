@@ -138,7 +138,7 @@ class ListStorage extends Command
             }
         }
 
-        if ($subDirs) {
+        if ($recursive && $subDirs) {
             foreach ($subDirs as $subDir) {
                 $this->listDirectory($disk, $subDir, $recursive, $longFormat);
             }
