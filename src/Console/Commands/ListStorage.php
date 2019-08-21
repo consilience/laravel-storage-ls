@@ -56,8 +56,21 @@ class ListStorage extends Command
 
         foreach ($content as $item) {
             $basename = $item['basename'] ?? 'unknown';
+            $pathname = $item['dirname'] . '/' . $basename;
+
             $size = $item['size'] ?? 0;
-            $type = ($item['type'] === 'dir' ? 'd' : '');
+
+            $type = $item['type'] ?? 'file';
+
+            // Some drivers do not supply the file size by default,
+            // so make another call to get it.
+
+            if ($size === 0 && $type === 'file') {
+                try {
+                    $size = Storage::disk($selectedDisk)->getSize($pathname);
+                } catch (\Throwable $e) {
+                }
+            }
 
             $timestamp = $item['timestamp'] ?? null;
 
@@ -69,7 +82,7 @@ class ListStorage extends Command
 
             $this->info(sprintf(
                 '%1s %10d %s %s',
-                $type,
+                $type === 'dir' ? 'd' : '',
                 $size,
                 $datetime,
                 $basename
