@@ -9,12 +9,20 @@ namespace Consilience\Laravel\Ls\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use DateTimeInterface;
+use Throwable;
 
 class ListStorage extends Command
 {
+    const TYPE_DIR = 'dir';
+    const TYPE_FILE = 'file';
+
+    protected $dirIndex = 0;
+
     protected $signature = 'storage:ls
-        {--disk= : select the filesystem disk}
-        {--dir= : list a given directory}';
+        {directory? : list a given directory}
+        {--d|disk= : select the filesystem disk}
+        {--l|long : long format}
+        {--R|recursive : list subdirectories recursively}';
 
     protected $description = 'List the contents of a file storage disk';
 
@@ -50,25 +58,52 @@ class ListStorage extends Command
             return;
         }
 
-        $selectedDir = $this->option('dir', '/');
+        $selectedDir = $this->argument('directory') ?? '/';
+        $recursive = $this->option('recursive');
+        $longFormat = $this->option('long');
 
-        $content = Storage::disk($selectedDisk)->listContents($selectedDir);
+        $this->listDirectory($selectedDisk, $selectedDir, $recursive, $longFormat);
+    }
+
+    protected function listDirectory(
+        string $disk,
+        string $directory,
+        bool $recursive,
+        bool $longFormat
+    ) {
+        $content = Storage::disk($disk)->listContents($directory);
+
+        if ($recursive) {
+            if ($this->dirIndex) {
+                $this->line('');
+            }
+
+            $this->dirIndex++;
+
+            $this->line($directory . ':');
+        }
+
+        $subDirs = [];
 
         foreach ($content as $item) {
             $basename = $item['basename'] ?? 'unknown';
-            $pathname = $item['dirname'] . '/' . $basename;
+            $dirname = $item['dirname'] ?? '/';
+
+            $pathname = $dirname . '/' . $basename;
 
             $size = $item['size'] ?? 0;
 
-            $type = $item['type'] ?? 'file';
+            $type = $item['type'] ?? static::TYPE_FILE;
 
             // Some drivers do not supply the file size by default,
             // so make another call to get it.
 
-            if ($size === 0 && $type === 'file') {
+            if ($size === 0 && $type === static::TYPE_FILE && $longFormat) {
                 try {
-                    $size = Storage::disk($selectedDisk)->getSize($pathname);
-                } catch (\Throwable $e) {
+                    $size = Storage::disk($disk)->getSize($pathname);
+                } catch (Throwable $e) {
+                    // Some drivers throw exceptions in some circumstances.
+                    // We just catch and ignore.
                 }
             }
 
@@ -80,13 +115,33 @@ class ListStorage extends Command
                 $datetime = '';
             }
 
-            $this->info(sprintf(
-                '%1s %10d %s %s',
-                $type === 'dir' ? 'd' : '',
-                $size,
-                $datetime,
-                $basename
-            ));
+            if ($longFormat) {
+                $this->line(sprintf(
+                    '%1s %10d %s %s',
+                    $type === static::TYPE_DIR ? 'd' : '-',
+                    $size,
+                    $datetime,
+                    $basename
+                ));
+            } else {
+                $message = sprintf('%s', $basename);
+
+                if ($type === static::TYPE_FILE) {
+                    $this->info($message);
+                } else {
+                    $this->warn($message);
+                }
+            }
+
+            if ($type === static::TYPE_DIR) {
+                $subDirs[] = $pathname;
+            }
+        }
+
+        if ($subDirs) {
+            foreach ($subDirs as $subDir) {
+                $this->listDirectory($disk, $subDir, $recursive, $longFormat);
+            }
         }
     }
 }
