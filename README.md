@@ -7,6 +7,19 @@ List the contents of Laravel file systems.
 $ php artisan storage:ls
 ```
 
+This will return a list of the available disks
+
+```text
+Available disks:
++-----------+--------+
+| name      | driver |
++-----------+--------+
+| local [*] | local  |
+| public    | local  |
+| s3        | s3     |
++-----------+--------+
+```
+
 ## List files/directories in given disk
 ```bash
 $ php artisan storage:ls --disk=s3
