@@ -1,0 +1,26 @@
+{
+    "name": "consilience/laravel-storage-ls",
+    "description": "List the contents of Laravel file systems.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jason Judge",
+            "email": "jason.judge@consil.co.uk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Consilience\\Laravel\\Ls\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Consilience\\Laravel\\Ls\\Providers\\LsServiceProvider"
+            ]
+        }
+    }
+}
