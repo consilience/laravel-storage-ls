@@ -9,13 +9,23 @@ namespace Consilience\Laravel\Ls\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use DateTimeInterface;
+use DateTimeImmutable;
+use DateTimeZone;
 use Throwable;
 
 class ListStorage extends Command
 {
+    /**
+     * flyssytem object types, because flysystem does not have its own
+     * constants for these.
+     */
     const TYPE_DIR = 'dir';
     const TYPE_FILE = 'file';
 
+    /**
+     * Counts up the number of objects (files or directories) fetched.
+     * Used for output formatting.
+     */
     protected $dirIndex = 0;
 
     protected $signature = 'storage:ls
@@ -65,6 +75,16 @@ class ListStorage extends Command
         $this->listDirectory($selectedDisk, $selectedDir, $recursive, $longFormat);
     }
 
+    /**
+     * List the contents of one directory and recurse if necessary.
+     *
+     * @param string $disk the name of the laravel filessystem disk
+     * @param string $directory the path from the root of the disk, leading "/" optional
+     * @param bool $recursive true to recurse into sub-directories
+     * @param bool $longFormat true to output long format, with sizes and timestamps
+     *
+     * @return void
+     */
     protected function listDirectory(
         string $disk,
         string $directory,
@@ -72,6 +92,10 @@ class ListStorage extends Command
         bool $longFormat
     ) {
         $content = Storage::disk($disk)->listContents($directory);
+
+        // If we are recursing into subdirectories, then display the directory
+        // before listing the contents.
+        // Precede with a blank line after the first directory.
 
         if ($recursive) {
             if ($this->dirIndex) {
@@ -83,7 +107,11 @@ class ListStorage extends Command
             $this->line($directory . ':');
         }
 
+        // To collect directories as we go through.
+
         $subDirs = [];
+
+        $dt = new DateTimeImmutable();
 
         foreach ($content as $item) {
             $basename = $item['basename'] ?? 'unknown';
@@ -107,13 +135,21 @@ class ListStorage extends Command
                 }
             }
 
+            // Format the timestamp if present.
+            // Just going down the seconds for now, and UTC is implied.
+
             $timestamp = $item['timestamp'] ?? null;
 
             if ($timestamp !== null) {
-                $datetime = date('Y-m-d H:i:s', $timestamp);
+                $datetime = $dt
+                    ->setTimezone(new DateTimeZone('UTC'))
+                    ->setTimestamp($timestamp)
+                    ->format('Y-m-d H:i:s');
             } else {
                 $datetime = '';
             }
+
+            // Two output formats at present: long and not long.
 
             if ($longFormat) {
                 $this->line(sprintf(
@@ -133,10 +169,14 @@ class ListStorage extends Command
                 }
             }
 
-            if ($type === static::TYPE_DIR) {
+            // Collect the list of sub-directories as we go through.
+
+            if ($recursive && $type === static::TYPE_DIR) {
                 $subDirs[] = $pathname;
             }
         }
+
+        // If recursing, go through the sub-directories collected.
 
         if ($recursive && $subDirs) {
             foreach ($subDirs as $subDir) {

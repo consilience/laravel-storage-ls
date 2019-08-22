@@ -42,6 +42,13 @@ $ php artisan storage:ls -d s3
 ```
 
 ```bash
+# Short format
+$ ./artisan storage:ls -d local -l
+.gitignore
+public
+
+# Long format
+
 $ ./artisan storage:ls -d local -l
 -         14 2019-03-05 14:27:03 .gitignore
 d          0 2019-08-21 11:19:46 public
