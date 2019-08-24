@@ -1,8 +1,20 @@
-# laravel-storage-ls
+# Laravel Storage ls
 
 List the contents of Laravel file systems/disks.
 
-This is handy to view remote files and diagnose disk connection problems.
+Laravel abstracts filesystems, both local and remote,
+using the [flysystem package](https://flysystem.thephpleague.com/docs/) and its adapters.
+The abstract unit on Laravel or Lumen for a filesystem is a *disk*,
+and each *disk* is configured in `config/filesystems.php`.
+This package provides an artisan command (`storage:ls`) to quickly and easily peek into a *disk*
+to see files and directories.
+
+The command is read-only, so will not allow files or directories to be added,
+removed or modified.
+Any excpetions are left purposely unhandled, so it can aid diagnosing connection problems.
+There is no interaction expected, so the command can be used in an automated pipeline,
+and also in environments such as *vapor* that allow you to run artisan commands,
+but offer no interactive shell.
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 [![Total Downloads](https://poser.pugx.org/consilience/laravel-storage-ls/downloads?format=flat)](https://packagist.org/packages/consilience/laravel-storage-ls)
@@ -43,24 +55,24 @@ $ php artisan storage:ls -d s3
 
 ```bash
 # Short format
-$ ./artisan storage:ls -d local -l
+$ php artisan storage:ls -d local -l
 .gitignore
 public
 
 # Long format
 
-$ ./artisan storage:ls -d local -l
+$ php artisan storage:ls -d local -l
 -         14 2019-03-05 14:27:03 .gitignore
 d          0 2019-08-21 11:19:46 public
 ```
 
-## List files/directories in given directory
+## List files and directories in given directory
 
 ```bash
 $ php artisan storage:ls -d s3 my-folder/sub-folder
 ```
 
-## List files/directories recusirvely
+## List files and directories recursively
 
 ```bash
 $ php artisan storage:ls -d local -R
@@ -100,20 +112,7 @@ public/dirB:
 
 # Installation
 
-## Laravel/Lumen
-
-Until published to Packagist, pull the development version from github by adding the
-repository to `composer.json`:
-
-```json
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/consilience/laravel-storage-ls.git"
-        }
-    ],
-    ...
-```
+## Laravel and Lumen
 
 ```bash
 composer require consilience/laravel-storage-ls
