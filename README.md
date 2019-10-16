@@ -1,6 +1,6 @@
 # Laravel Storage ls
 
-List the contents of Laravel file systems/disks.
+List the files of Laravel file systems (aka disks) through a simple artisan command.
 
 Laravel abstracts filesystems, both local and remote,
 using the [flysystem package](https://flysystem.thephpleague.com/docs/) and its adapters.
