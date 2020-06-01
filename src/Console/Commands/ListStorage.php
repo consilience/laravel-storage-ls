@@ -45,8 +45,21 @@ class ListStorage extends Command
             return 1;
         }
 
+        $selectedDir = $this->argument('directory') ?? '/';
+
         $selectedDisk = $this->option('disk') ?? '';
         $defaultDisk = config('filesystems.default');
+
+        if ($selectedDisk === ''  && strpos($selectedDir, ':') !== false) {
+            // User may be using the "disk:directory" format.
+
+            [$diskSplit, $dirSplit] = explode(':', $selectedDir);
+
+            if (array_key_exists($diskSplit, $disks)) {
+                $selectedDisk = $diskSplit;
+                $selectedDir = $dirSplit;
+            }
+        }
 
         if ($selectedDisk !== '' && ! array_key_exists($selectedDisk, $disks)) {
             $this->error(sprintf('Selected disk "%s" does not exist', $selectedDisk));
@@ -68,7 +81,6 @@ class ListStorage extends Command
             return;
         }
 
-        $selectedDir = $this->argument('directory') ?? '/';
         $recursive = $this->option('recursive');
         $longFormat = $this->option('long');
 

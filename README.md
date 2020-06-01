@@ -51,6 +51,10 @@ $ php artisan storage:ls --disk=s3
 # or
 
 $ php artisan storage:ls -d s3
+
+# or
+
+$ php artisan storage:ls s3:
 ```
 
 ```bash
@@ -69,6 +73,10 @@ d          0 2019-08-21 11:19:46 public
 
 ```bash
 $ php artisan storage:ls -d s3 my-folder/sub-folder
+
+// or separate the disk and directory with a colon
+
+$ php artisan storage:ls s3:my-folder/sub-folder
 ```
 
 ## List files and directories recursively
