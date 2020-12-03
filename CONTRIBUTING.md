@@ -3,7 +3,7 @@
 Contributions are **welcome** and will be fully **credited**.
 
 We accept contributions via pull requests via 
-[Github](https://github.com/cviebrock/eloquent-taggable).
+[Github](https://github.com/consilience/laravel-storage-ls).
 
 1. Fork the project.
 2. Create your bugfix/feature branch and write your (well-commented) code.
@@ -20,7 +20,7 @@ We accept contributions via pull requests via
 - **Use the [PSR-2 Coding Standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-2-coding-style-guide.md).**
   The easiest way to apply the conventions is to install [PHP Code Sniffer](http://pear.php.net/package/PHP_CodeSniffer).
 
-- **Add tests!**  Your pull request won't be accepted if it doesn't have tests.
+- **Add tests!**  Your pull request may not be accepted if it doesn't have tests.
 
 - **Document any change in behaviour.**  Make sure the `README.md` and any other relevant 
   documentation are kept up-to-date.
@@ -36,9 +36,5 @@ We accept contributions via pull requests via
   If you had to make multiple intermediate commits while developing, please 
   [squash them](http://www.git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Changing-Multiple-Commit-Messages)
   before submitting.
-
-- Don't worry about updating `CHANGELOG.md` or `.semver`.  The package administrator
-  will handle updating those when new releases are created.
-  
 
 **Thank you!**
