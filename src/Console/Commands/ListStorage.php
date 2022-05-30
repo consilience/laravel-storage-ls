@@ -3,7 +3,14 @@
 namespace Consilience\Laravel\Ls\Console\Commands;
 
 /**
- *
+ * This command uses the Flysystem driver methods rather than the
+ * laravel wrapper methods. It makes sense to change this, for example
+ * to use $disk::directories() rather than $disk::listContents(), as
+ * it provides better laravel version consistency. For now it is
+ * what it is, and the Laravel 9 version is a breaking change due to
+ * using Flysystem 3.0 only methods. The main reason for this is the
+ * lack of caching for the laravel wrapper, with multiple returns to
+ * the storage to fetch each item of metadata.
  */
 
 use Illuminate\Console\Command;
@@ -50,7 +57,7 @@ class ListStorage extends Command
         $selectedDisk = $this->option('disk') ?? '';
         $defaultDisk = config('filesystems.default');
 
-        if ($selectedDisk === ''  && strpos($selectedDir, ':') !== false) {
+        if ($selectedDisk === '' && strpos($selectedDir, ':') !== false) {
             // User may be using the "disk:directory" format.
 
             [$diskSplit, $dirSplit] = explode(':', $selectedDir);
@@ -126,21 +133,21 @@ class ListStorage extends Command
         $dt = new DateTimeImmutable();
 
         foreach ($content as $item) {
-            $basename = $item['basename'] ?? 'unknown';
-            $dirname = $item['dirname'] ?? '/';
+            $basename = basename($item->path()) ?? 'unknown';
+            $dirname = dirname($item->path()) ?? '/';
 
             $pathname = $dirname . '/' . $basename;
 
-            $size = $item['size'] ?? 0;
-
-            $type = $item['type'] ?? static::TYPE_FILE;
+            $size = $item['fileSize'] ?? 0;
 
             // Some drivers do not supply the file size by default,
             // so make another call to get it.
 
-            if ($size === 0 && $type === static::TYPE_FILE && $longFormat) {
+            if ($size === 0 && $item->isFile() && $longFormat) {
+
                 try {
-                    $size = Storage::disk($disk)->getSize($pathname);
+                    $size = Storage::disk($disk)->fileSize($pathname);
+
                 } catch (Throwable $e) {
                     // Some drivers throw exceptions in some circumstances.
                     // We just catch and ignore.
@@ -148,9 +155,9 @@ class ListStorage extends Command
             }
 
             // Format the timestamp if present.
-            // Just going down the seconds for now, and UTC is implied.
+            // Just going down to seconds for now, and UTC is implied.
 
-            $timestamp = $item['timestamp'] ?? null;
+            $timestamp = $item['lastModified'] ?? null;
 
             if ($timestamp !== null) {
                 $datetime = $dt
@@ -166,7 +173,7 @@ class ListStorage extends Command
             if ($longFormat) {
                 $this->line(sprintf(
                     '%1s %10d %s %s',
-                    $type === static::TYPE_DIR ? 'd' : '-',
+                    $item->isDir() ? 'd' : '-',
                     $size,
                     $datetime,
                     $basename
@@ -174,7 +181,7 @@ class ListStorage extends Command
             } else {
                 $message = sprintf('%s', $basename);
 
-                if ($type === static::TYPE_FILE) {
+                if ($item->isFile()) {
                     $this->info($message);
                 } else {
                     $this->warn($message);
@@ -183,7 +190,7 @@ class ListStorage extends Command
 
             // Collect the list of sub-directories as we go through.
 
-            if ($recursive && $type === static::TYPE_DIR) {
+            if ($recursive && $item->isDir()) {
                 $subDirs[] = $pathname;
             }
         }
