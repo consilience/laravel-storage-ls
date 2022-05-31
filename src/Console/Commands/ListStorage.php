@@ -3,32 +3,25 @@
 namespace Consilience\Laravel\Ls\Console\Commands;
 
 /**
- * This command uses the Flysystem driver methods rather than the
- * laravel wrapper methods. It makes sense to change this, for example
- * to use $disk::directories() rather than $disk::listContents(), as
- * it provides better laravel version consistency. For now it is
- * what it is, and the Laravel 9 version is a breaking change due to
- * using Flysystem 3.0 only methods. The main reason for this is the
- * lack of caching for the laravel wrapper, with multiple returns to
- * the storage to fetch each item of metadata.
+ * This command uses the Laravel wrapper to scan and inspect
+ * files and directories, so should work even when the file
+ * system driver is not Flysystem. What we lose is the ability
+ * to get sizes and modified times for directories. That info
+ * is there for Flysystem drivers, but is discarded by Laravel
+ * when it fetches its file and directory listings. Then
+ * Flysystem does not have an API for fetching metadata for
+ * directories; it only has this for files.
  */
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
-use DateTimeInterface;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use DateTimeImmutable;
 use DateTimeZone;
 use Throwable;
 
 class ListStorage extends Command
 {
-    /**
-     * flyssytem object types, because flysystem does not have its own
-     * constants for these.
-     */
-    const TYPE_DIR = 'dir';
-    const TYPE_FILE = 'file';
-
     /**
      * Counts up the number of objects (files or directories) fetched.
      * Used for output formatting.
@@ -41,10 +34,12 @@ class ListStorage extends Command
         {--l|long : long format}
         {--R|recursive : list subdirectories recursively}';
 
-    protected $description = 'List the contents of a file storage disk';
+    protected $description = 'List the contents of a filesystem disk';
 
     public function handle()
     {
+        // Collect input.
+
         $disks = config('filesystems.disks');
 
         if ($disks === null) {
@@ -56,6 +51,11 @@ class ListStorage extends Command
 
         $selectedDisk = $this->option('disk') ?? '';
         $defaultDisk = config('filesystems.default');
+
+        $recursive = $this->option('recursive');
+        $longFormat = $this->option('long');
+
+        // Parse and validate input.
 
         if ($selectedDisk === '' && strpos($selectedDir, ':') !== false) {
             // User may be using the "disk:directory" format.
@@ -88,16 +88,15 @@ class ListStorage extends Command
             return;
         }
 
-        $recursive = $this->option('recursive');
-        $longFormat = $this->option('long');
+        // Do the listing.
 
-        $this->listDirectory($selectedDisk, $selectedDir, $recursive, $longFormat);
+        $this->listDirectory(Storage::disk($selectedDisk), $selectedDir, $recursive, $longFormat);
     }
 
     /**
      * List the contents of one directory and recurse if necessary.
      *
-     * @param string $disk the name of the laravel filessystem disk
+     * @param Filesystem $disk the name of the laravel filessystem disk
      * @param string $directory the path from the root of the disk, leading "/" optional
      * @param bool $recursive true to recurse into sub-directories
      * @param bool $longFormat true to output long format, with sizes and timestamps
@@ -105,13 +104,11 @@ class ListStorage extends Command
      * @return void
      */
     protected function listDirectory(
-        string $disk,
+        Filesystem $disk,
         string $directory,
         bool $recursive,
         bool $longFormat
     ) {
-        $content = Storage::disk($disk)->listContents($directory);
-
         // If we are recursing into subdirectories, then display the directory
         // before listing the contents.
         // Precede with a blank line after the first directory.
@@ -123,84 +120,115 @@ class ListStorage extends Command
 
             $this->dirIndex++;
 
-            $this->line($directory . ':');
+            $this->line(sprintf('%s:', $directory));
         }
 
         // To collect directories as we go through.
 
-        $subDirs = [];
+        $directories = $disk->directories($directory);
+        $files = $disk->files($directory);
 
         $dt = new DateTimeImmutable();
 
-        foreach ($content as $item) {
-            $basename = basename($item->path()) ?? 'unknown';
-            $dirname = dirname($item->path()) ?? '/';
+        foreach($directories as $path) {
+            $basename = basename($path);
 
-            $pathname = $dirname . '/' . $basename;
-
-            $size = $item['fileSize'] ?? 0;
-
-            // Some drivers do not supply the file size by default,
-            // so make another call to get it.
-
-            if ($size === 0 && $item->isFile() && $longFormat) {
-
-                try {
-                    $size = Storage::disk($disk)->fileSize($pathname);
-
-                } catch (Throwable $e) {
-                    // Some drivers throw exceptions in some circumstances.
-                    // We just catch and ignore.
-                }
-            }
-
-            // Format the timestamp if present.
-            // Just going down to seconds for now, and UTC is implied.
-
-            $timestamp = $item['lastModified'] ?? null;
-
-            if ($timestamp !== null) {
-                $datetime = $dt
-                    ->setTimezone(new DateTimeZone('UTC'))
-                    ->setTimestamp($timestamp)
-                    ->format('Y-m-d H:i:s');
-            } else {
-                $datetime = '';
-            }
-
-            // Two output formats at present: long and not long.
+            [
+                'size' => $size,
+                'lastModifiedFormatted' => $lastModifiedFormatted,
+            ] = $this->metadata($disk, $path);
 
             if ($longFormat) {
-                $this->line(sprintf(
-                    '%1s %10d %s %s',
-                    $item->isDir() ? 'd' : '-',
+                $this->warn(sprintf(
+                    'd %10d %s %s',
                     $size,
-                    $datetime,
+                    $lastModifiedFormatted,
                     $basename
                 ));
             } else {
                 $message = sprintf('%s', $basename);
 
-                if ($item->isFile()) {
-                    $this->info($message);
-                } else {
-                    $this->warn($message);
-                }
+                $this->warn($message); // Orange for a directory.
             }
+        }
 
-            // Collect the list of sub-directories as we go through.
+        foreach ($files as $path) {
+            $basename = basename($path);
 
-            if ($recursive && $item->isDir()) {
-                $subDirs[] = $pathname;
+            [
+                'size' => $size,
+                'lastModifiedFormatted' => $lastModifiedFormatted,
+            ] = $this->metadata($disk, $path);
+
+            if ($longFormat) {
+                $this->info(sprintf(
+                    '- %10d %s %s',
+                    $size,
+                    $lastModifiedFormatted,
+                    $basename
+                ));
+            } else {
+                $message = sprintf('%s', $basename);
+
+                $this->info($message); // Green for a file.
             }
         }
 
         // If recursing, go through the sub-directories collected.
 
-        if ($recursive && $subDirs) {
-            foreach ($subDirs as $subDir) {
-                $this->listDirectory($disk, $subDir, $recursive, $longFormat);
+        if ($recursive && $directories) {
+            foreach ($directories as $directory) {
+                $this->listDirectory($disk, $directory, $recursive, $longFormat);
             }
         }
+    }
+
+    /**
+     * Fetch the metadata for a file or directory.
+     *
+     * @param FileSystem $disk
+     * @param string $path
+     * @return array
+     */
+    protected function metadata(FileSystem $disk, string $path): array
+    {
+        try {
+            $size = $disk->size($path);
+
+        } catch (Throwable) {
+            // Laravel does not support fetching the size of
+            // a directory at this time. Most Flysystem drivers
+            // DO support it, but only when using listContents().
+
+            $size = 0;
+        }
+
+        try {
+            $lastModified = $disk->lastModified($path);
+
+        } catch (Throwable) {
+            // Laravel does not support fetching the timestamp of
+            // a directory at this time. Most Flysystem drivers
+            // DO support it, but only when using listContents().
+
+            $lastModified = null;
+        }
+    
+        if ($lastModified !== null) {
+            $lastModifiedFormatted = (new DateTimeImmutable())
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->setTimestamp($lastModified)
+                ->format('Y-m-d H:i:s');
+        } else {
+            // Length of 'YYYY-MM-DD HH:MM:SS'.
+
+            $lastModifiedFormatted = '                   ';
+        }
+
+        return [
+            'size' => $size, // bytes
+            'lastModified' => $lastModified, // Unix timestamp|null
+            'lastModifiedFormatted' => $lastModifiedFormatted, // string
+        ];
     }
 }

@@ -3,7 +3,7 @@
 namespace Consilience\Laravel\Ls\Providers;
 
 /**
- *
+ * Register the storage:ls command with the framework.
  */
 
 use Consilience\Laravel\Ls\Console\Commands\ListStorage;
