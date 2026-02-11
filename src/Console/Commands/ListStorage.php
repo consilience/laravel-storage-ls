@@ -44,7 +44,7 @@ class ListStorage extends Command
 
         if ($disks === null) {
             $this->error('No disks defined on this system');
-            return 1;
+            return self::FAILURE;
         }
 
         $selectedDir = $this->argument('directory') ?? '/';
@@ -85,12 +85,14 @@ class ListStorage extends Command
                     ];
                 })
             );
-            return;
+            return self::SUCCESS;
         }
 
         // Do the listing.
 
         $this->listDirectory(Storage::disk($selectedDisk), $selectedDir, $recursive, $longFormat);
+        
+        return self::SUCCESS;
     }
 
     /**
