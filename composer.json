@@ -11,14 +11,21 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "illuminate/support": "^9.0|^10.0",
-        "php": "^8.0"
+        "illuminate/support": "^11.0|^12.0",
+        "php": "^8.2|^8.3|^8.4"
     },
     "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "orchestra/testbench": "^10.0"
     },
     "autoload": {
         "psr-4": {
             "Consilience\\Laravel\\Ls\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Consilience\\Laravel\\Ls\\Tests\\": "tests/"
         }
     },
     "extra": {
